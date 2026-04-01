@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Simple Meme Factory</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    p {
+      text-align: center;
+      color: #666;
+    }
+    button {
+      padding: 12px 20px;
+      font-size: 16px;
+      background-color: #ff4500;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      margin: 10px;
+    }
+    button:hover {
+      background-color: #e03d00;
+    }
+    .controls {
+      text-align: center;
+      margin: 20px 0;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+      gap: 15px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .meme-card {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      overflow: hidden;
+      cursor: pointer;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    .meme-card img {
+      width: 100%;
+      height: 180px;
+      object-fit: cover;
+    }
+    .meme-card p {
+      padding: 10px;
+      margin: 0;
+      text-align: center;
+      font-size: 14px;
+      font-weight: bold;
+      color: #333;
+    }
+    .loading {
+      text-align: center;
+      font-size: 18px;
+      margin: 50px;
+    }
+    .error {
+      color: red;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>🎭 Simple Meme Factory</h1>
+  <p>Click on any meme to see its details (name + image URL)</p>
+
+  <div class="controls">
+    <button onclick="getRandomMeme()">🎲 Get Random Meme</button>
+    <button onclick="fetchMemes()">Refresh Memes</button>
+  </div>
+
+  <div id="loading" class="loading">Loading memes from Imgflip API...</div>
+  <div id="error" class="error" style="display: none;"></div>
+
+  <div id="memeGrid" class="grid"></div>
+
+  <script>
+    let allMemes = [];
+
+    // Fetch memes from Imgflip API
+    async function fetchMemes() {
+      const loadingEl = document.getElementById('loading');
+      const errorEl = document.getElementById('error');
+      const gridEl = document.getElementById('memeGrid');
+
+      loadingEl.style.display = 'block';
+      errorEl.style.display = 'none';
+      gridEl.innerHTML = '';
+
+      try {
+        const response = await fetch('https://api.imgflip.com/get_memes');
+        const data = await response.json();
+
+        if (data.success) {
+          allMemes = data.data.memes;
+          displayMemes(allMemes);
+        } else {
+          throw new Error('API returned unsuccessful response');
+        }
+      } catch (err) {
+        errorEl.textContent = 'Failed to load memes. Please try again later.';
+        errorEl.style.display = 'block';
+      } finally {
+        loadingEl.style.display = 'none';
+      }
+    }
+
+    // Display memes in grid
+    function displayMemes(memes) {
+      const gridEl = document.getElementById('memeGrid');
+      gridEl.innerHTML = '';
+
+      memes.forEach(meme => {
+        const card = document.createElement('div');
+        card.className = 'meme-card';
+        card.innerHTML = `
+          <img src="${meme.url}" alt="${meme.name}">
+          <p>${meme.name}</p>
+        `;
+        card.onclick = () => showMemeDetails(meme);
+        gridEl.appendChild(card);
+      });
+    }
+
+    // Show meme details in alert
+    function showMemeDetails(meme) {
+      const message = 
+`Meme Name: ${meme.name}
+
+Image URL: ${meme.url}
+
+Width: ${meme.width}px
+Height: ${meme.height}px
+
+Click OK to copy the image URL to clipboard.`;
+
+      if (confirm(message)) {
+        navigator.clipboard.writeText(meme.url).then(() => {
+          alert('✅ Image URL copied to clipboard!');
+        }).catch(() => {
+          alert('Image URL: ' + meme.url + '\n\n(You can manually copy it)');
+        });
+      }
+    }
+
+    // Get a random meme
+    function getRandomMeme() {
+      if (allMemes.length === 0) {
+        alert("No memes loaded yet. Please wait or click Refresh.");
+        return;
+      }
+      const randomIndex = Math.floor(Math.random() * allMemes.length);
+      showMemeDetails(allMemes[randomIndex]);
+    }
+
+    // Load memes when page opens
+    window.onload = fetchMemes;
+  </script>
+
+</body>
+</html>
